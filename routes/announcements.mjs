@@ -4,6 +4,23 @@ import db from "../db/conn.mjs"; // Adjust path as per your project structure
 
 const router = express.Router();
 
+router.get("/all", async (req, res) => {
+  try {
+    const announcementsCollection = await db.collection("announcements");
+
+    // Fetch all announcements and sort them by createdAt in descending order
+    const announcements = await announcementsCollection
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    return res.status(200).json(announcements);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 router.post("/create", async (req, res) => {
   const { userId, title, content, imageUrl } = req.body;
   console.log(JSON.stringify(userId, content));
