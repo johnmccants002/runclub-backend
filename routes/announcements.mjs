@@ -21,6 +21,33 @@ router.get("/all", async (req, res) => {
   }
 });
 
+// Get a single announcement by ID
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid announcement ID" });
+  }
+
+  try {
+    const announcementsCollection = await db.collection("announcements");
+
+    // Fetch the announcement by ID
+    const announcement = await announcementsCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!announcement) {
+      return res.status(404).json({ message: "Announcement not found" });
+    }
+
+    return res.status(200).json(announcement);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 router.post("/create", async (req, res) => {
   const { userId, title, content, imageUrl } = req.body;
   console.log(JSON.stringify(userId, content));
