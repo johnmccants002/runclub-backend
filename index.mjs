@@ -5,7 +5,7 @@ import "express-async-errors";
 import authRouter from "./routes/auth.mjs";
 import announcementsRouter from "./routes/announcements.mjs";
 import profileRouter from "./routes/profile.mjs";
-
+import usersRouter from "./routes/users.mjs";
 const PORT = process.env.PORT || 5050;
 const app = express();
 
@@ -16,6 +16,7 @@ app.use(express.json());
 app.use("/auth", authRouter);
 app.use("/announcements", announcementsRouter);
 app.use("/users", profileRouter);
+app.use("/users", usersRouter);
 
 // Global error handling
 app.use((err, _req, res, next) => {
