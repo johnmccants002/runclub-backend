@@ -73,4 +73,47 @@ router.delete("/delete/:id", async (req, res) => {
   }
 });
 
+router.put("/update/:id", async (req, res) => {
+  const { id } = req.params;
+  const { title, content, imageUrl } = req.body;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid announcement ID" });
+  }
+
+  if (!title && !content && !imageUrl) {
+    return res.status(400).json({
+      message:
+        "At least one field (title, content, imageUrl) must be provided to update",
+    });
+  }
+
+  try {
+    const announcementsCollection = await db.collection("announcements");
+
+    // Build the update object
+    const updateFields = {};
+    if (title) updateFields.title = title;
+    if (content) updateFields.content = content;
+    if (imageUrl) updateFields.imageUrl = imageUrl;
+
+    // Update the announcement
+    const result = await announcementsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateFields }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Announcement not found" });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Announcement updated successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
