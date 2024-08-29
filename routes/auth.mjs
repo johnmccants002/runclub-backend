@@ -9,6 +9,8 @@ import jwt from "jsonwebtoken"; // Import jsonwebtoken
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+const JWT_REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET || "your_refresh_jwt_secret";
 
 router.post("/signup", async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
@@ -43,19 +45,35 @@ router.post("/signup", async (req, res) => {
     // Insert the new user into the collection
     await usersCollection.insertOne(newUser);
 
-    // Generate a JWT token
+    // Generate a JWT token (access token)
     const token = jwt.sign(
       { userId: newUser._id, email: newUser.email },
       JWT_SECRET,
       {
-        expiresIn: "1h", // Token expires in 1 hour
+        expiresIn: "1h",
       }
     );
 
-    // Return the token and user info
+    // Generate a refresh token
+    const refreshToken = jwt.sign(
+      { userId: newUser._id, email: newUser.email },
+      JWT_REFRESH_SECRET,
+      {
+        expiresIn: "7d", // Refresh token valid for 7 days
+      }
+    );
+
+    // Store the refresh token in the database
+    await usersCollection.updateOne(
+      { _id: newUser._id },
+      { $set: { refreshToken } }
+    );
+
+    // Return the access token, refresh token, and user info
     return res.status(201).json({
       message: "User registered successfully",
       token,
+      refreshToken,
       user: {
         id: newUser._id,
         firstName: newUser.firstName,
@@ -199,6 +217,78 @@ router.post("/reset-password/:token", async (req, res) => {
     );
 
     return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/token", async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(400).json({ message: "Refresh token is required" });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+
+    // Find the user with the refresh token
+    const usersCollection = await db.collection("users");
+    const user = await usersCollection.findOne({
+      _id: new ObjectId(decoded.userId),
+    });
+
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    // Generate a new access token
+    const newToken = jwt.sign(
+      { userId: user._id, email: user.email },
+      JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    // (Optional) Generate a new refresh token and update the database
+    const newRefreshToken = jwt.sign(
+      { userId: user._id, email: user.email },
+      JWT_REFRESH_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
+    await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { refreshToken: newRefreshToken } }
+    );
+
+    return res.status(200).json({
+      token: newToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(403).json({ message: "Invalid refresh token" });
+  }
+});
+
+router.post("/logout", async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    const usersCollection = await db.collection("users");
+
+    // Remove the refresh token
+    await usersCollection.updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: { refreshToken: null } }
+    );
+
+    return res.status(200).json({ message: "User logged out successfully" });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
