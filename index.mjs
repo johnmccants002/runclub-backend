@@ -6,6 +6,7 @@ import authRouter from "./routes/auth.mjs";
 import announcementsRouter from "./routes/announcements.mjs";
 import profileRouter from "./routes/profile.mjs";
 import usersRouter from "./routes/users.mjs";
+import adminRouter from "./routes/admin.mjs";
 const PORT = process.env.PORT || 5050;
 const app = express();
 
@@ -17,6 +18,7 @@ app.use("/auth", authRouter);
 app.use("/announcements", announcementsRouter);
 app.use("/users", profileRouter);
 app.use("/users", usersRouter);
+app.use("/admin", adminRouter);
 
 // Global error handling
 app.use((err, _req, res, next) => {

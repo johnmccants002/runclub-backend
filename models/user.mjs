@@ -1,24 +1,5 @@
 import mongoose from "mongoose";
 
-const userProfileSchema = new mongoose.Schema({
-  instagram: {
-    type: String,
-    default: "",
-  },
-  phoneNumber: {
-    type: String,
-    default: "",
-  },
-  favoriteBrunchSpot: {
-    type: String,
-    default: "",
-  },
-  about: {
-    type: String,
-    default: "",
-  },
-});
-
 const userSchema = new mongoose.Schema({
   firstName: {
     type: String,
@@ -38,8 +19,14 @@ const userSchema = new mongoose.Schema({
     required: true,
   },
   profile: {
-    type: userProfileSchema,
-    default: () => ({}),
+    instagram: String,
+    phoneNumber: String,
+    favoriteBrunchSpot: String,
+    about: String,
+  },
+  isMember: {
+    type: Boolean,
+    default: false, // Users are not members by default
   },
   createdAt: {
     type: Date,
