@@ -4,8 +4,11 @@ import { ObjectId } from "mongodb";
 import db from "../db/conn.mjs";
 import * as crypto from "crypto";
 import nodemailer from "nodemailer";
+import jwt from "jsonwebtoken"; // Import jsonwebtoken
 
 const router = express.Router();
+
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 
 router.post("/signup", async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
@@ -40,7 +43,26 @@ router.post("/signup", async (req, res) => {
     // Insert the new user into the collection
     await usersCollection.insertOne(newUser);
 
-    return res.status(201).json({ message: "User registered successfully" });
+    // Generate a JWT token
+    const token = jwt.sign(
+      { userId: newUser._id, email: newUser.email },
+      JWT_SECRET,
+      {
+        expiresIn: "1h", // Token expires in 1 hour
+      }
+    );
+
+    // Return the token and user info
+    return res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user: {
+        id: newUser._id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+      },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
