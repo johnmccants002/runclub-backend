@@ -109,7 +109,42 @@ router.post("/signin", async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    return res.status(200).json({ message: "User signed in successfully" });
+    // Generate a JWT token (access token)
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      JWT_SECRET,
+      {
+        expiresIn: "1h", // Token expires in 1 hour
+      }
+    );
+
+    // Generate a refresh token
+    const refreshToken = jwt.sign(
+      { userId: user._id, email: user.email },
+      JWT_REFRESH_SECRET,
+      {
+        expiresIn: "7d", // Refresh token valid for 7 days
+      }
+    );
+
+    // Update the user's refresh token in the database
+    await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { refreshToken } }
+    );
+
+    // Return the access token, refresh token, and user info
+    return res.status(200).json({
+      message: "User signed in successfully",
+      token,
+      refreshToken,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });

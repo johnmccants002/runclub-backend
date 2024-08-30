@@ -1,32 +1,18 @@
-import mongoose from "mongoose";
-
 const userSchema = new mongoose.Schema({
-  firstName: {
-    type: String,
-    required: true,
-  },
-  lastName: {
-    type: String,
-    required: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
-  },
+  firstName: String,
+  lastName: String,
+  email: String,
+  password: String,
   profile: {
     instagram: String,
     phoneNumber: String,
     favoriteBrunchSpot: String,
     about: String,
   },
-  isMember: {
-    type: Boolean,
-    default: false, // Users are not members by default
+  membershipStatus: {
+    type: String,
+    enum: ["pending", "accepted", "denied"],
+    default: "pending",
   },
   createdAt: {
     type: Date,
