@@ -61,4 +61,20 @@ router.put("/deny/:userId", async (req, res) => {
   }
 });
 
+router.get("/pending-members", async (req, res) => {
+  try {
+    const usersCollection = await db.collection("users");
+
+    // Find all users with membershipStatus "accepted"
+    const acceptedUsers = await usersCollection
+      .find({ membershipStatus: "denied" })
+      .toArray();
+
+    return res.status(200).json(acceptedUsers);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
