@@ -39,6 +39,7 @@ router.post("/signup", async (req, res) => {
       lastName,
       email,
       password: hashedPassword,
+      isAdmin: false, // Default value for isAdmin
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -48,7 +49,7 @@ router.post("/signup", async (req, res) => {
 
     // Generate a JWT token (access token)
     const token = jwt.sign(
-      { userId: newUser._id, email: newUser.email },
+      { userId: newUser._id, email: newUser.email, isAdmin: newUser.isAdmin },
       JWT_SECRET,
       {
         expiresIn: "1h",
@@ -57,7 +58,7 @@ router.post("/signup", async (req, res) => {
 
     // Generate a refresh token
     const refreshToken = jwt.sign(
-      { userId: newUser._id, email: newUser.email },
+      { userId: newUser._id, email: newUser.email, isAdmin: newUser.isAdmin },
       JWT_REFRESH_SECRET,
       {
         expiresIn: "7d", // Refresh token valid for 7 days
@@ -80,6 +81,7 @@ router.post("/signup", async (req, res) => {
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         email: newUser.email,
+        isAdmin: newUser.isAdmin,
       },
     });
   } catch (error) {
@@ -112,7 +114,7 @@ router.post("/signin", async (req, res) => {
 
     // Generate a JWT token (access token)
     const token = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, isAdmin: user.isAdmin },
       JWT_SECRET,
       {
         expiresIn: "1h", // Token expires in 1 hour
@@ -121,7 +123,7 @@ router.post("/signin", async (req, res) => {
 
     // Generate a refresh token
     const refreshToken = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, isAdmin: user.isAdmin },
       JWT_REFRESH_SECRET,
       {
         expiresIn: "7d", // Refresh token valid for 7 days
@@ -144,6 +146,7 @@ router.post("/signin", async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        isAdmin: user.isAdmin,
       },
     });
   } catch (error) {
