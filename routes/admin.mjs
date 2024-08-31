@@ -4,6 +4,31 @@ import db from "../db/conn.mjs"; // Adjust path as per your project structure
 
 const router = express.Router();
 
+// Helper function to get the start and end dates for the current week and month
+const getDateRange = (rangeType) => {
+  const now = new Date();
+  let startDate;
+  let endDate = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59
+  ); // End of today
+
+  if (rangeType === "week") {
+    const firstDayOfWeek = now.getDate() - now.getDay();
+    startDate = new Date(now.setDate(firstDayOfWeek));
+    startDate.setHours(0, 0, 0, 0); // Start of the week
+  } else if (rangeType === "month") {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    startDate.setHours(0, 0, 0, 0); // Start of the month
+  }
+
+  return { startDate, endDate };
+};
+
 // Admin route to accept a user as a member
 router.put("/accept/:userId", async (req, res) => {
   const { userId } = req.params;
@@ -80,6 +105,42 @@ router.get("/pending-members", async (req, res) => {
       .toArray();
 
     return res.status(200).json(pendingUsers);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Route to get the number of members accepted this week
+router.get("/accepted-members/this-week", async (req, res) => {
+  try {
+    const usersCollection = await db.collection("users");
+    const { startDate, endDate } = getDateRange("week");
+
+    const acceptedThisWeek = await usersCollection.countDocuments({
+      membershipStatus: "accepted",
+      updatedAt: { $gte: startDate, $lte: endDate },
+    });
+
+    return res.status(200).json({ acceptedThisWeek });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Route to get the number of members accepted this month
+router.get("/accepted-members/this-month", async (req, res) => {
+  try {
+    const usersCollection = await db.collection("users");
+    const { startDate, endDate } = getDateRange("month");
+
+    const acceptedThisMonth = await usersCollection.countDocuments({
+      membershipStatus: "accepted",
+      updatedAt: { $gte: startDate, $lte: endDate },
+    });
+
+    return res.status(200).json({ acceptedThisMonth });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
