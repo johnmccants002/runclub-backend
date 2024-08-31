@@ -66,11 +66,20 @@ router.get("/pending-members", async (req, res) => {
     const usersCollection = await db.collection("users");
 
     // Find all users with membershipStatus "accepted"
-    const acceptedUsers = await usersCollection
-      .find({ membershipStatus: "denied" })
+    const pendingUsers = await usersCollection
+      .find(
+        { membershipStatus: "pending" },
+        {
+          projection: {
+            password: 0,
+            refreshToken: 0,
+            // Add any other fields you want to omit
+          },
+        }
+      )
       .toArray();
 
-    return res.status(200).json(acceptedUsers);
+    return res.status(200).json(pendingUsers);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });

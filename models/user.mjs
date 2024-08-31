@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 const userSchema = new mongoose.Schema({
   firstName: String,
   lastName: String,
@@ -21,6 +23,10 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now,
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false,
   },
 });
 

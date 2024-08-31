@@ -5,6 +5,7 @@ import db from "../db/conn.mjs";
 import * as crypto from "crypto";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken"; // Import jsonwebtoken
+import User from "../models/user.mjs";
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ router.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create a new user
-    const newUser = {
+    const newUser = new User({
       _id: new ObjectId(),
       firstName,
       lastName,
@@ -40,7 +41,7 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
+    });
 
     // Insert the new user into the collection
     await usersCollection.insertOne(newUser);

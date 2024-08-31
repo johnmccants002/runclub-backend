@@ -8,9 +8,18 @@ router.get("/", async (req, res) => {
   try {
     const usersCollection = await db.collection("users");
 
-    // Find all users with membershipStatus "accepted"
+    // Find all users with membershipStatus "accepted" and omit sensitive fields
     const acceptedUsers = await usersCollection
-      .find({ membershipStatus: "accepted" })
+      .find(
+        { membershipStatus: "accepted" },
+        {
+          projection: {
+            password: 0,
+            refreshToken: 0,
+            // Add any other fields you want to omit
+          },
+        }
+      )
       .toArray();
 
     return res.status(200).json(acceptedUsers);
