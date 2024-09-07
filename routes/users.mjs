@@ -71,4 +71,47 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+router.post("/upload-image", async (req, res) => {
+  console.log(req.file);
+
+  const file = req.files.photo;
+  console.log(JSON.stringify(file));
+  const fileType = file.name.split(".")[1];
+  const fileData = file.data;
+  const fileName = `${req.user}.${fileType}`;
+
+  const bucketParams = {
+    Bucket: process.env.AWS_S3_BUCKET,
+    Key: fileName,
+    Body: fileData,
+  };
+
+  console.log("BUCKET PARAMS: ", bucketParams);
+
+  try {
+    const result = await s3Client.send(new PutObjectCommand(bucketParams));
+    const s3ProfilePhotoUrl = `${s3BaseUrl}${bucketParams.Bucket}/${fileName}`;
+
+    try {
+      const profile = await UserProfile.findOne({ user: req.user });
+      if (!profile) throw { status: 404, message: "Profile not found" };
+
+      profile.photo = s3ProfilePhotoUrl;
+      await profile.save();
+
+      res.setHeader("Cache-Control", "no-cache");
+      return res.status(200).json({
+        photoUrl: s3ProfilePhotoUrl,
+        message: "Photo uploaded successfully",
+      });
+    } catch (userError) {
+      console.error("Error updating user profile photo:", userError);
+      res.status(500).send("Error updating user profile photo");
+    }
+  } catch (s3Error) {
+    console.error("Error uploading profile photo to AWS S3:", s3Error);
+    res.status(500).send("Error uploading profile photo to AWS S3");
+  }
+});
+
 export default router;

@@ -6,6 +6,7 @@ import * as crypto from "crypto";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken"; // Import jsonwebtoken
 import User from "../models/user.mjs";
+import qrcode from "qrcode"; // Import QR code package
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ router.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create a new user
-    const newUser = new User({
+    const newUser = {
       _id: new ObjectId(),
       firstName,
       lastName,
@@ -51,27 +52,33 @@ router.post("/signup", async (req, res) => {
       isAdmin: false, // Default value for isAdmin
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    };
 
     // Insert the new user into the collection
     await usersCollection.insertOne(newUser);
+
+    // Generate a QR code based on the user's ID or unique data
+    const qrData = newUser._id.toString(); // Example: link to user's profile
+    const qrCodeUrl = await qrcode.toDataURL(qrData); // Generate the QR code as a base64-encoded image
+
+    // Update the user with the generated QR code
+    await usersCollection.updateOne(
+      { _id: newUser._id },
+      { $set: { qrCode: qrCodeUrl } }
+    );
 
     // Generate a JWT token (access token)
     const token = jwt.sign(
       { userId: newUser._id, email: newUser.email, isAdmin: newUser.isAdmin },
       JWT_SECRET,
-      {
-        expiresIn: "1h",
-      }
+      { expiresIn: "1h" }
     );
 
     // Generate a refresh token
     const refreshToken = jwt.sign(
       { userId: newUser._id, email: newUser.email, isAdmin: newUser.isAdmin },
       JWT_REFRESH_SECRET,
-      {
-        expiresIn: "7d", // Refresh token valid for 7 days
-      }
+      { expiresIn: "7d" } // Refresh token valid for 7 days
     );
 
     // Store the refresh token in the database
@@ -80,7 +87,7 @@ router.post("/signup", async (req, res) => {
       { $set: { refreshToken } }
     );
 
-    // Return the access token, refresh token, and user info
+    // Return the access token, refresh token, and user info (including the QR code)
     return res.status(201).json({
       message: "User registered successfully",
       token,
@@ -93,6 +100,7 @@ router.post("/signup", async (req, res) => {
         isAdmin: newUser.isAdmin,
         tosAccepted: newUser.tosAccepted,
         emailList: newUser.emailList,
+        qrCode: qrCodeUrl, // Include the QR code URL in the response
       },
     });
   } catch (error) {
