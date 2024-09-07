@@ -16,6 +16,14 @@ const userSchema = new mongoose.Schema({
     enum: ["pending", "accepted", "denied"],
     default: "pending",
   },
+  tosAccepted: {
+    type: Boolean,
+    default: false,
+  },
+  emailList: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

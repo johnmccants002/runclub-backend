@@ -14,10 +14,17 @@ const JWT_REFRESH_SECRET =
   process.env.JWT_REFRESH_SECRET || "your_refresh_jwt_secret";
 
 router.post("/signup", async (req, res) => {
-  const { firstName, lastName, email, password } = req.body;
+  const { firstName, lastName, email, password, tosAccepted, emailList } =
+    req.body;
 
   if (!firstName || !lastName || !email || !password) {
     return res.status(400).json({ message: "All fields are required" });
+  }
+
+  if (typeof tosAccepted === "undefined") {
+    return res
+      .status(400)
+      .json({ message: "Terms of Service acceptance is required" });
   }
 
   try {
@@ -39,6 +46,8 @@ router.post("/signup", async (req, res) => {
       lastName,
       email,
       password: hashedPassword,
+      tosAccepted: !!tosAccepted, // Ensure it's a boolean
+      emailList: !!emailList, // Ensure it's a boolean
       isAdmin: false, // Default value for isAdmin
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -82,6 +91,8 @@ router.post("/signup", async (req, res) => {
         lastName: newUser.lastName,
         email: newUser.email,
         isAdmin: newUser.isAdmin,
+        tosAccepted: newUser.tosAccepted,
+        emailList: newUser.emailList,
       },
     });
   } catch (error) {
