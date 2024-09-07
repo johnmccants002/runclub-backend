@@ -147,4 +147,41 @@ router.get("/accepted-members/this-month", async (req, res) => {
   }
 });
 
+// Route to check in a user to a run
+router.post("/checkin", async (req, res) => {
+  const { userId, eventId, adminId } = req.body;
+
+  if (
+    !ObjectId.isValid(userId) ||
+    !ObjectId.isValid(eventId) ||
+    !ObjectId.isValid(adminId)
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Invalid user ID, event ID, or admin ID" });
+  }
+
+  try {
+    const checkInsCollection = await db.collection("checkins");
+
+    // Create the check-in object
+    const checkInData = {
+      userId: new ObjectId(userId),
+      eventId: new ObjectId(eventId),
+      adminId: new ObjectId(adminId),
+      date: new Date(), // Add the current date
+    };
+
+    // Insert the check-in record into the collection
+    await checkInsCollection.insertOne(checkInData);
+
+    return res
+      .status(201)
+      .json({ message: "User checked in successfully", checkInData });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
