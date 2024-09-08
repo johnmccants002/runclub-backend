@@ -147,7 +147,6 @@ router.get("/accepted-members/this-month", async (req, res) => {
   }
 });
 
-// Route to check in a user to a run
 router.post("/checkin", async (req, res) => {
   const { userId, eventId, adminId } = req.body;
 
@@ -164,6 +163,18 @@ router.post("/checkin", async (req, res) => {
   try {
     const checkInsCollection = await db.collection("checkins");
 
+    // Check if the user is already checked into the event
+    const existingCheckIn = await checkInsCollection.findOne({
+      userId: new ObjectId(userId),
+      eventId: new ObjectId(eventId),
+    });
+
+    if (existingCheckIn) {
+      return res
+        .status(400)
+        .json({ message: "User is already checked into this event." });
+    }
+
     // Create the check-in object
     const checkInData = {
       userId: new ObjectId(userId),
@@ -179,7 +190,7 @@ router.post("/checkin", async (req, res) => {
       .status(201)
       .json({ message: "User checked in successfully", checkInData });
   } catch (error) {
-    console.error(error);
+    console.error("Error during check-in:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
