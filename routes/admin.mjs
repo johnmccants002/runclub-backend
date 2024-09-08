@@ -171,10 +171,9 @@ router.post("/checkin", async (req, res) => {
 
     if (existingCheckIn) {
       return res
-        .status(400)
-        .json({ message: "User is already checked into this event." });
+        .status(409)
+        .json({ message: "User is already checked into this event." }); // Conflict (409) error
     }
-
     // Create the check-in object
     const checkInData = {
       userId: new ObjectId(userId),
