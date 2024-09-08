@@ -57,9 +57,20 @@ router.post("/signup", async (req, res) => {
     // Insert the new user into the collection
     await usersCollection.insertOne(newUser);
 
-    // Generate a QR code based on the user's ID or unique data
+    // Customize the QR code
     const qrData = newUser._id.toString(); // Example: link to user's profile
-    const qrCodeUrl = await qrcode.toDataURL(qrData); // Generate the QR code as a base64-encoded image
+    const qrCodeOptions = {
+      color: {
+        dark: "#000000", // Black QR code dots
+        light: "#ffffff", // White background
+      },
+      width: 300, // Size of the QR code
+      margin: 2, // Margin around the QR code
+      errorCorrectionLevel: "H", // High error correction level
+    };
+
+    // Generate the QR code with custom options
+    const qrCodeUrl = await qrcode.toDataURL(qrData, qrCodeOptions);
 
     // Update the user with the generated QR code
     await usersCollection.updateOne(
