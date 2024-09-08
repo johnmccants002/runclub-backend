@@ -6,7 +6,6 @@ import * as crypto from "crypto";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken"; // Import jsonwebtoken
 import User from "../models/user.mjs";
-import qrcode from "qrcode"; // Import QR code package
 
 const router = express.Router();
 
@@ -57,27 +56,6 @@ router.post("/signup", async (req, res) => {
     // Insert the new user into the collection
     await usersCollection.insertOne(newUser);
 
-    // Customize the QR code
-    const qrData = newUser._id.toString(); // Example: link to user's profile
-    const qrCodeOptions = {
-      color: {
-        dark: "#000000", // Black QR code dots
-        light: "#ffffff", // White background
-      },
-      width: 300, // Size of the QR code
-      margin: 2, // Margin around the QR code
-      errorCorrectionLevel: "H", // High error correction level
-    };
-
-    // Generate the QR code with custom options
-    const qrCodeUrl = await qrcode.toDataURL(qrData, qrCodeOptions);
-
-    // Update the user with the generated QR code
-    await usersCollection.updateOne(
-      { _id: newUser._id },
-      { $set: { qrCode: qrCodeUrl } }
-    );
-
     // Generate a JWT token (access token)
     const token = jwt.sign(
       { userId: newUser._id, email: newUser.email, isAdmin: newUser.isAdmin },
@@ -98,7 +76,7 @@ router.post("/signup", async (req, res) => {
       { $set: { refreshToken } }
     );
 
-    // Return the access token, refresh token, and user info (including the QR code)
+    // Return the access token, refresh token, and user info
     return res.status(201).json({
       message: "User registered successfully",
       token,
@@ -111,7 +89,6 @@ router.post("/signup", async (req, res) => {
         isAdmin: newUser.isAdmin,
         tosAccepted: newUser.tosAccepted,
         emailList: newUser.emailList,
-        qrCode: qrCodeUrl, // Include the QR code URL in the response
       },
     });
   } catch (error) {

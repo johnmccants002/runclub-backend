@@ -4,32 +4,45 @@ import db from "../db/conn.mjs"; // Adjust path as per your project structure
 
 const router = express.Router();
 
-// Route to create a new event (already provided)
-router.post("/create-event", async (req, res) => {
-  const { title, details, startTime, endTime, photo } = req.body;
+import Event from "../models/event.mjs"; // Import the Event model
+router.post("/create", async (req, res) => {
+  const { adminId, title, details, startTime, endTime, photo } = req.body;
 
-  if (!title || !details || !startTime || !endTime) {
+  console.log(JSON.stringify({ adminId, title, details }));
+
+  // Validate required fields
+  if (!adminId || !title || !details || !startTime || !endTime) {
     return res.status(400).json({
-      message: "Title, details, start time, and end time are required",
+      message: "User ID, title, details, start time, and end time are required",
     });
   }
 
   try {
+    const usersCollection = await db.collection("users");
+
+    // Check if the user exists
+    const user = await usersCollection.findOne({ _id: new ObjectId(adminId) });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
     const eventsCollection = await db.collection("events");
 
-    const eventData = {
+    // Prepare the new event data
+    const newEvent = {
+      createdBy: new ObjectId(adminId), // Set user ID as the event creator
       title,
       details,
       startTime: new Date(startTime),
       endTime: new Date(endTime),
-      photo: photo || null,
+      photo: photo || "", // Optional photo URL
       createdAt: new Date(),
     };
 
-    await eventsCollection.insertOne(eventData);
-    return res
-      .status(201)
-      .json({ message: "Event created successfully", eventData });
+    // Insert the new event into the collection
+    await eventsCollection.insertOne(newEvent);
+
+    return res.status(201).json({ message: "Event created successfully" });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -133,6 +146,60 @@ router.get("/events/:eventId", async (req, res) => {
     return res.status(200).json(event);
   } catch (error) {
     console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/today", async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0)); // Start of today (00:00:00)
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999)); // End of today (23:59:59)
+
+    const eventsCollection = await db.collection("events");
+
+    // Find an event that starts or ends today
+    const todayEvent = await eventsCollection.findOne({
+      startTime: { $gte: startOfDay, $lte: endOfDay },
+    });
+
+    if (!todayEvent) {
+      return res.status(404).json({ message: "No event scheduled for today" });
+    }
+
+    return res.status(200).json({
+      message: "Event found for today",
+      event: todayEvent,
+    });
+  } catch (error) {
+    console.error("Error fetching today's event:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/future", async (req, res) => {
+  try {
+    const now = new Date(); // Current date and time
+
+    const eventsCollection = await db.collection("events");
+
+    // Find all events that start in the future
+    const futureEvents = await eventsCollection
+      .find({
+        startTime: { $gt: now },
+      })
+      .toArray(); // Use toArray() to get all future events in an array
+
+    if (futureEvents.length === 0) {
+      return res.status(404).json({ message: "No future events found" });
+    }
+
+    return res.status(200).json({
+      message: "Future events found",
+      events: futureEvents,
+    });
+  } catch (error) {
+    console.error("Error fetching future events:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
