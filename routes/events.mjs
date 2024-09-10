@@ -204,4 +204,43 @@ router.get("/future", async (req, res) => {
   }
 });
 
+router.post("/rsvp", async (req, res) => {
+  const { userId, eventId } = req.body;
+
+  if (!ObjectId.isValid(userId) || !ObjectId.isValid(eventId)) {
+    return res.status(400).json({ message: "Invalid user ID or event ID" });
+  }
+
+  try {
+    const rsvpCollection = await db.collection("rsvps");
+
+    // Check if the user has already RSVPed for the event
+    const existingRSVP = await rsvpCollection.findOne({
+      userId: new ObjectId(userId),
+      eventId: new ObjectId(eventId),
+    });
+
+    if (existingRSVP) {
+      return res
+        .status(409)
+        .json({ message: "User has already RSVPed for this event." });
+    }
+
+    // Create the RSVP object
+    const rsvpData = {
+      userId: new ObjectId(userId),
+      eventId: new ObjectId(eventId),
+      date: new Date(), // Add the current date
+    };
+
+    // Insert the RSVP record into the collection
+    await rsvpCollection.insertOne(rsvpData);
+
+    return res.status(201).json({ message: "RSVP successful", rsvpData });
+  } catch (error) {
+    console.error("Error during RSVP:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
