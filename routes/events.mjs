@@ -1,6 +1,10 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+
+// Time zone for California (Pacific Time)
+const timeZone = "America/Los_Angeles";
 
 const router = express.Router();
 
@@ -217,9 +221,31 @@ router.get("/future", async (req, res) => {
       return res.status(404).json({ message: "No future events found" });
     }
 
+    // Convert startTime and endTime to proper Date objects and format them to Pacific Time
+    const formattedEvents = futureEvents.map((event) => {
+      const startTimeZoned = toZonedTime(new Date(event.startTime), timeZone);
+      const endTimeZoned = toZonedTime(new Date(event.endTime), timeZone);
+
+      return {
+        ...event,
+        startTime: formatInTimeZone(
+          startTimeZoned,
+          timeZone,
+          "MMMM dd, yyyy 'at' h:mm a"
+        ), // Format date for Pacific Time
+        endTime: formatInTimeZone(
+          endTimeZoned,
+          timeZone,
+          "MMMM dd, yyyy 'at' h:mm a"
+        ), // Format end time
+      };
+    });
+
+    console.log(JSON.stringify(formattedEvents[0].startTime));
+
     return res.status(200).json({
       message: "Future events found",
-      events: futureEvents,
+      events: formattedEvents,
     });
   } catch (error) {
     console.error("Error fetching future events:", error);
