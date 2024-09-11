@@ -6,14 +6,30 @@ const router = express.Router();
 
 import Event from "../models/event.mjs"; // Import the Event model
 router.post("/create", async (req, res) => {
-  const { adminId, title, details, startTime, endTime, photo } = req.body;
+  const { adminId, title, details, startTime, endTime, photo, location } =
+    req.body; // Include location in destructuring
 
   console.log(JSON.stringify({ adminId, title, details }));
 
   // Validate required fields
-  if (!adminId || !title || !details || !startTime || !endTime) {
+  if (!adminId || !title || !details || !startTime || !endTime || !location) {
     return res.status(400).json({
-      message: "User ID, title, details, start time, and end time are required",
+      message:
+        "Admin ID, title, details, start time, end time, and location are required",
+    });
+  }
+
+  // Validate location fields
+  if (
+    !location.place_id ||
+    !location.name ||
+    !location.formatted_address ||
+    !location.lat ||
+    !location.lng
+  ) {
+    return res.status(400).json({
+      message:
+        "Location details (place_id, name, formatted_address, lat, lng) are required",
     });
   }
 
@@ -26,9 +42,7 @@ router.post("/create", async (req, res) => {
       return res.status(400).json({ message: "User not found" });
     }
 
-    const eventsCollection = await db.collection("events");
-
-    // Prepare the new event data
+    // Prepare the new event data with location details
     const newEvent = {
       createdBy: new ObjectId(adminId), // Set user ID as the event creator
       title,
@@ -36,8 +50,17 @@ router.post("/create", async (req, res) => {
       startTime: new Date(startTime),
       endTime: new Date(endTime),
       photo: photo || "", // Optional photo URL
+      location: {
+        place_id: location.place_id,
+        name: location.name,
+        formatted_address: location.formatted_address,
+        lat: location.lat,
+        lng: location.lng,
+      },
       createdAt: new Date(),
     };
+
+    const eventsCollection = await db.collection("events");
 
     // Insert the new event into the collection
     await eventsCollection.insertOne(newEvent);

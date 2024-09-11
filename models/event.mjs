@@ -32,6 +32,29 @@ const eventSchema = new Schema({
     type: Date,
     default: Date.now, // Automatically set to the current date
   },
+  // New location field
+  location: {
+    place_id: {
+      type: String,
+      required: true, // Place ID is required
+    },
+    name: {
+      type: String,
+      required: true, // Place name is required
+    },
+    formatted_address: {
+      type: String,
+      required: true, // Formatted address is required
+    },
+    lat: {
+      type: Number,
+      required: true, // Latitude is required
+    },
+    lng: {
+      type: Number,
+      required: true, // Longitude is required
+    },
+  },
 });
 
 // Create the Event model
