@@ -1,11 +1,12 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
+import { verifyToken } from "../middleware/verifyToken.mjs";
 
 const router = express.Router();
 
 // Get all users
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, async (req, res) => {
   try {
     const usersCollection = await db.collection("users");
 
@@ -21,7 +22,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get a single user by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, async (req, res) => {
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -48,7 +49,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Delete a user by ID
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken, async (req, res) => {
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -71,7 +72,7 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.post("/upload-image", async (req, res) => {
+router.post("/upload-image", verifyToken, async (req, res) => {
   console.log(req.file);
 
   const file = req.files.photo;

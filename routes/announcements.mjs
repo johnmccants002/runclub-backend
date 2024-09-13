@@ -1,10 +1,11 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
+import { verifyToken } from "../middleware/verifyToken.mjs";
 
 const router = express.Router();
 
-router.get("/all", async (req, res) => {
+router.get("/all", verifyToken, async (req, res) => {
   try {
     const announcementsCollection = await db.collection("announcements");
 
@@ -22,7 +23,7 @@ router.get("/all", async (req, res) => {
 });
 
 // Get a single announcement by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, async (req, res) => {
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -48,7 +49,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/create", async (req, res) => {
+router.post("/create", verifyToken, async (req, res) => {
   const { userId, title, content, imageUrl } = req.body;
   console.log(JSON.stringify(userId, content));
 
@@ -89,7 +90,7 @@ router.post("/create", async (req, res) => {
   }
 });
 
-router.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id", verifyToken, async (req, res) => {
   const { id } = req.params;
 
   if (!ObjectId.isValid(id)) {
@@ -117,7 +118,7 @@ router.delete("/delete/:id", async (req, res) => {
   }
 });
 
-router.put("/update/:id", async (req, res) => {
+router.put("/update/:id", verifyToken, async (req, res) => {
   const { id } = req.params;
   const { title, content, imageUrl } = req.body;
 

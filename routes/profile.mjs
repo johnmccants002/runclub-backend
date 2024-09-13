@@ -1,11 +1,12 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
+import { verifyToken } from "../middleware/verifyToken.mjs";
 
 const router = express.Router();
 
 // Get user profile by user ID
-router.get("/profile/:userId", async (req, res) => {
+router.get("/profile/:userId", verifyToken, async (req, res) => {
   const { userId } = req.params;
 
   if (!ObjectId.isValid(userId)) {
@@ -32,7 +33,7 @@ router.get("/profile/:userId", async (req, res) => {
 });
 
 // Create or update user profile
-router.put("/profile/:userId", async (req, res) => {
+router.put("/profile/:userId", verifyToken, async (req, res) => {
   const { userId } = req.params;
   const { instagram, phoneNumber, favoriteBrunchSpot, about } = req.body;
 

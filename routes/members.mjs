@@ -1,10 +1,11 @@
 import express from "express";
 import db from "../db/conn.mjs"; // Adjust the path as per your project structure
+import { verifyToken } from "../middleware/verifyToken.mjs";
 
 const router = express.Router();
 
 // Route to get all users with a membership status of "accepted"
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, async (req, res) => {
   try {
     const usersCollection = await db.collection("users");
 

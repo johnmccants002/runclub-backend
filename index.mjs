@@ -10,6 +10,7 @@ import adminRouter from "./routes/admin.mjs";
 import membersRouter from "./routes/members.mjs";
 import eventsRouter from "./routes/events.mjs";
 import locationsRouter from "./routes/locations.mjs";
+import rsvpsRouter from "./routes/rsvps.mjs";
 
 const PORT = process.env.PORT || 5050;
 const app = express();
@@ -26,6 +27,7 @@ app.use("/admin", adminRouter);
 app.use("/members", membersRouter);
 app.use("/events", eventsRouter);
 app.use("/locations", locationsRouter);
+app.use("/rsvps", rsvpsRouter);
 
 // Global error handling
 app.use((err, _req, res, next) => {

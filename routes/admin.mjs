@@ -1,6 +1,7 @@
 import express from "express";
 import { ObjectId } from "mongodb";
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
+import { verifyToken } from "../middleware/verifyToken.mjs";
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ const getDateRange = (rangeType) => {
 };
 
 // Admin route to accept a user as a member
-router.put("/accept/:userId", async (req, res) => {
+router.put("/accept/:userId", verifyToken, async (req, res) => {
   const { userId } = req.params;
 
   if (!ObjectId.isValid(userId)) {
@@ -58,7 +59,7 @@ router.put("/accept/:userId", async (req, res) => {
   }
 });
 
-router.put("/deny/:userId", async (req, res) => {
+router.put("/deny/:userId", verifyToken, async (req, res) => {
   const { userId } = req.params;
 
   if (!ObjectId.isValid(userId)) {
@@ -86,7 +87,7 @@ router.put("/deny/:userId", async (req, res) => {
   }
 });
 
-router.get("/pending-members", async (req, res) => {
+router.get("/pending-members", verifyToken, async (req, res) => {
   try {
     const usersCollection = await db.collection("users");
 
@@ -112,7 +113,7 @@ router.get("/pending-members", async (req, res) => {
 });
 
 // Route to get the number of members accepted this week
-router.get("/accepted-members/this-week", async (req, res) => {
+router.get("/accepted-members/this-week", verifyToken, async (req, res) => {
   try {
     const usersCollection = await db.collection("users");
     const { startDate, endDate } = getDateRange("week");
@@ -130,7 +131,7 @@ router.get("/accepted-members/this-week", async (req, res) => {
 });
 
 // Route to get the number of members accepted this month
-router.get("/accepted-members/this-month", async (req, res) => {
+router.get("/accepted-members/this-month", verifyToken, async (req, res) => {
   try {
     const usersCollection = await db.collection("users");
     const { startDate, endDate } = getDateRange("month");
@@ -147,7 +148,7 @@ router.get("/accepted-members/this-month", async (req, res) => {
   }
 });
 
-router.post("/checkin", async (req, res) => {
+router.post("/checkin", verifyToken, async (req, res) => {
   const { userId, eventId, adminId } = req.body;
 
   if (
