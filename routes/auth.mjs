@@ -5,7 +5,6 @@ import db from "../db/conn.mjs";
 import * as crypto from "crypto";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken"; // Import jsonwebtoken
-import User from "../models/user.mjs";
 
 const router = express.Router();
 
