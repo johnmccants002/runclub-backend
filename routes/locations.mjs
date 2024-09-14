@@ -50,10 +50,20 @@ router.get("/place-details", verifyToken, async (req, res) => {
       }
     );
 
-    // Check if the request was successful and return the data
+    // Check if the request was successful and log the result
     if (result.data.status === "OK") {
-      res.status(200).json(result.data.result); // Return the place details
+      // Ensure the geometry field exists before responding
+      if (result.data.result && result.data.result.geometry) {
+        res.status(200).json(result.data.result); // Return the place details
+      } else {
+        console.error("Geometry field is missing in the API response");
+        res.status(400).json({ message: "Geometry data is missing" });
+      }
     } else {
+      console.error(
+        "Failed to fetch place details from Google API:",
+        result.data.status
+      );
       res.status(400).json({ message: "Failed to fetch place details" });
     }
   } catch (error) {

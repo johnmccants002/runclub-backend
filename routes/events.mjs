@@ -3,6 +3,10 @@ import { ObjectId } from "mongodb";
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { verifyToken } from "../middleware/verifyToken.mjs";
+import { getStorage, ref, uploadBytesResumable } from "firebase/storage";
+import app from "../services/firebase-admin.mjs";
+import multer from "multer";
+import { v4 as uuidv4 } from "uuid"; // Optionally generate unique IDs for file names
 
 // Time zone for California (Pacific Time)
 const timeZone = "America/Los_Angeles";
@@ -252,6 +256,78 @@ router.get("/future", verifyToken, async (req, res) => {
   } catch (error) {
     console.error("Error fetching future events:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+const upload = multer({ storage: multer.memoryStorage() }); // Using memoryStorage for file uploads
+
+router.post("/upload", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    console.log(JSON.stringify(req.file.originalname));
+
+    // Get the Firebase Admin Storage bucket
+    const dbStorage = app.storage();
+
+    console.log("successfully got dbStorage");
+    const bucket = dbStorage.bucket();
+    const uniqueFilename = `events/${Date.now()}_${uuidv4()}_${
+      req.file.originalname
+    }`;
+
+    // Create a file reference in Firebase Storage
+    const file = bucket.file(uniqueFilename);
+
+    // Create metadata (optional)
+    const metadata = {
+      metadata: {
+        contentType: req.file.mimetype,
+      },
+    };
+
+    // Upload the file to Firebase Storage
+    const blobStream = file.createWriteStream({
+      metadata,
+    });
+
+    // Handle stream events (errors, finish)
+    blobStream.on("error", (error) => {
+      console.error("Upload failed:", error);
+      return res.status(500).json({ error: "File upload failed" });
+    });
+
+    blobStream.on("finish", async () => {
+      try {
+        // Make the file publicly accessible or modify access rules as needed
+        await file.makePublic();
+
+        // Get the file's public URL
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+
+        // Example: Save event data with image URL
+        const event = {
+          title: req.body.title,
+          imageUrl: publicUrl, // Save the URL in your event object
+        };
+
+        // Save the event to the database (MongoDB, etc.)
+        // Example: await saveEventToDatabase(event);
+
+        res.status(200).json({ message: "Upload successful", event });
+      } catch (error) {
+        console.error("Error getting public URL:", error);
+        res.status(500).json({ error: "Failed to make file public" });
+      }
+    });
+
+    // End the stream and upload the file
+    blobStream.end(req.file.buffer);
+  } catch (err) {
+    console.error("Something went wrong:", err);
+    res.status(500).json({ error: "Something went wrong" });
   }
 });
 

@@ -11,6 +11,7 @@ import membersRouter from "./routes/members.mjs";
 import eventsRouter from "./routes/events.mjs";
 import locationsRouter from "./routes/locations.mjs";
 import rsvpsRouter from "./routes/rsvps.mjs";
+import pingRouter from "./routes/ping.mjs";
 
 const PORT = process.env.PORT || 5050;
 const app = express();
@@ -28,6 +29,7 @@ app.use("/members", membersRouter);
 app.use("/events", eventsRouter);
 app.use("/locations", locationsRouter);
 app.use("/rsvps", rsvpsRouter);
+app.use("/ping", pingRouter);
 
 // Global error handling
 app.use((err, _req, res, next) => {
