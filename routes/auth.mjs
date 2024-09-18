@@ -5,6 +5,7 @@ import db from "../db/conn.mjs";
 import * as crypto from "crypto";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken"; // Import jsonwebtoken
+import { newMemberNotification } from "../services/expo.mjs";
 
 const router = express.Router();
 
@@ -74,6 +75,7 @@ router.post("/signup", async (req, res) => {
       { _id: newUser._id },
       { $set: { refreshToken } }
     );
+    await newMemberNotification(firstName, lastName, db);
 
     // Return the access token, refresh token, and user info
     return res.status(201).json({

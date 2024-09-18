@@ -12,6 +12,7 @@ import eventsRouter from "./routes/events.mjs";
 import locationsRouter from "./routes/locations.mjs";
 import rsvpsRouter from "./routes/rsvps.mjs";
 import pingRouter from "./routes/ping.mjs";
+import notificationsRouter from "./routes/notifications.mjs";
 
 const PORT = process.env.PORT || 5050;
 const app = express();
@@ -30,6 +31,7 @@ app.use("/events", eventsRouter);
 app.use("/locations", locationsRouter);
 app.use("/rsvps", rsvpsRouter);
 app.use("/ping", pingRouter);
+app.use("/notifications", notificationsRouter);
 
 // Global error handling
 app.use((err, _req, res, next) => {

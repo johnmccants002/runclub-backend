@@ -1,10 +1,53 @@
 import express from "express";
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
 import { verifyToken } from "../middleware/verifyToken.mjs"; // Import the JWT middleware
+import { ObjectId } from "mongodb";
 
 const router = express.Router();
 
-// POST: RSVP to an event (protected route)
+// POST: RSVP to an event (protected route
+
+// DELETE: Remove RSVP for an event (protected route)
+router.delete("/:eventId/:userId", verifyToken, async (req, res) => {
+  const { eventId, userId } = req.params; // Use req.params to access route parameters
+
+  // Validate that both userId and eventId are provided
+  if (!userId || !eventId) {
+    return res
+      .status(400)
+      .json({ message: "User ID and Event ID are required" });
+  }
+
+  try {
+    const rsvpsCollection = await db.collection("rsvps");
+
+    // Convert userId and eventId to ObjectId if they are stored as ObjectId in the database
+    const userIdObject = new ObjectId(userId);
+    const eventIdObject = new ObjectId(eventId);
+
+    // Check if the RSVP exists
+    const existingRsvp = await rsvpsCollection.findOne({
+      userId: userIdObject,
+      eventId: eventIdObject,
+    });
+
+    if (!existingRsvp) {
+      return res.status(404).json({ message: "RSVP not found" });
+    }
+
+    // Remove the RSVP
+    await rsvpsCollection.deleteOne({
+      userId: userIdObject,
+      eventId: eventIdObject,
+    });
+
+    return res.status(200).json({ message: "RSVP removed successfully" });
+  } catch (error) {
+    console.error("Error removing RSVP:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 router.post("/", verifyToken, async (req, res) => {
   const { userId, eventId } = req.body;
 
@@ -18,8 +61,15 @@ router.post("/", verifyToken, async (req, res) => {
   try {
     const rsvpsCollection = await db.collection("rsvps");
 
+    // Convert userId and eventId to ObjectId
+    const userIdObject = new ObjectId(userId);
+    const eventIdObject = new ObjectId(eventId);
+
     // Check if the user has already RSVP'd for the event
-    const existingRsvp = await rsvpsCollection.findOne({ userId, eventId });
+    const existingRsvp = await rsvpsCollection.findOne({
+      userId: userIdObject,
+      eventId: eventIdObject,
+    });
 
     if (existingRsvp) {
       return res
@@ -29,8 +79,8 @@ router.post("/", verifyToken, async (req, res) => {
 
     // Create the new RSVP
     const newRsvp = {
-      userId,
-      eventId,
+      userId: userIdObject,
+      eventId: eventIdObject,
       timestamp: new Date(), // Optionally store when the RSVP was made
     };
 

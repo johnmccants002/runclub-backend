@@ -1,10 +1,6 @@
 import jwt from "jsonwebtoken";
 
 export const verifyToken = (req, res, next) => {
-  console.log(
-    "IN VERIFY TOKEN. THIS IS THE TOKEN: ",
-    req.headers["authorization"]
-  );
   const token = req.headers["authorization"];
 
   if (!token) {
@@ -12,9 +8,7 @@ export const verifyToken = (req, res, next) => {
   }
 
   try {
-    console.log("TRYING TO DECODE");
     const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
-    console.log("THIS IS DECODED TOKEN", decoded);
     req.user = decoded; // Attach user info to the request (optional)
     next();
   } catch (err) {

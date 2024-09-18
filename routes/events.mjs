@@ -7,11 +7,30 @@ import { getStorage, ref, uploadBytesResumable } from "firebase/storage";
 import app from "../services/firebase-admin.mjs";
 import multer from "multer";
 import { v4 as uuidv4 } from "uuid"; // Optionally generate unique IDs for file names
+import { sendPushNotifications } from "../services/expo.mjs";
 
 // Time zone for California (Pacific Time)
 const timeZone = "America/Los_Angeles";
 
 const router = express.Router();
+
+export async function getAllPushTokens() {
+  try {
+    // Query the notifications collection to get all push tokens
+    const tokens = await db
+      .collection("notifications")
+      .find({}, { projection: { pushToken: 1, _id: 0 } }) // Retrieve only the pushToken field
+      .toArray();
+
+    // Map the results to extract just the pushToken values
+    const pushTokens = tokens.map((tokenDoc) => tokenDoc.pushToken);
+
+    return pushTokens;
+  } catch (error) {
+    console.error("Error fetching all push tokens:", error);
+    throw new Error("Failed to fetch push tokens");
+  }
+}
 
 import Event from "../models/event.mjs"; // Import the Event model
 router.post("/create", verifyToken, async (req, res) => {
@@ -73,6 +92,11 @@ router.post("/create", verifyToken, async (req, res) => {
 
     // Insert the new event into the collection
     await eventsCollection.insertOne(newEvent);
+
+    const tokens = await getAllPushTokens();
+
+    console.log("THESE ARE THE TOKENS", tokens);
+    await sendPushNotifications(tokens, "New 916 Run Club Event!");
 
     return res.status(201).json({ message: "Event created successfully" });
   } catch (error) {

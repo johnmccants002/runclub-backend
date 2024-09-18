@@ -1,4 +1,5 @@
 import { Expo } from "expo-server-sdk";
+import { ObjectId } from "mongodb"; // Import ObjectId from MongoDB
 
 // Create a new Expo SDK client
 let expo = new Expo({
@@ -7,7 +8,7 @@ let expo = new Expo({
 });
 
 // This function will send push notifications to a list of tokens
-export async function sendPushNotifications(pushTokens) {
+export async function sendPushNotifications(pushTokens, message) {
   let messages = [];
 
   // Create the messages that you want to send to clients
@@ -22,8 +23,8 @@ export async function sendPushNotifications(pushTokens) {
     messages.push({
       to: pushToken,
       sound: "default",
-      body: "This is a test notification",
-      data: { withSome: "data" },
+      body: message,
+      data: { url: "/admin/about/pending-members" },
     });
   }
 
@@ -77,3 +78,37 @@ export async function getReceipts(receiptIds) {
     }
   }
 }
+
+export const newMemberNotification = async (firstName, lastName, db) => {
+  try {
+    // Step 1: Find all users where isAdmin is true
+    console.log(firstName, lastName, "FIRST AND LAST NAME");
+    const adminUsers = await db
+      .collection("users")
+      .find({ isAdmin: true })
+      .toArray();
+    const adminUserIds = adminUsers.map((user) => user._id);
+    console.log(adminUserIds, "ADMIN USER IDS");
+
+    // Step 2: Find notifications where userId is in the list of adminUserIds
+    const adminNotifications = await db
+      .collection("notifications")
+      .find({
+        userId: { $in: adminUserIds.map((id) => new ObjectId(id)) },
+      })
+      .toArray();
+
+    // Step 3: Extract push tokens from the notifications
+    const adminPushTokens = adminNotifications.map(
+      (notification) => notification.pushToken
+    );
+    sendPushNotifications(
+      adminPushTokens,
+      `${firstName} ${lastName} requested to join 916 Run Club!`
+    );
+    // Send the result
+    return;
+  } catch (error) {
+    console.error(error);
+  }
+};
