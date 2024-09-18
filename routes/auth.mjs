@@ -51,6 +51,7 @@ router.post("/signup", async (req, res) => {
       isAdmin: false, // Default value for isAdmin
       createdAt: new Date(),
       updatedAt: new Date(),
+      membershipStatus: "pending",
     };
 
     // Insert the new user into the collection
