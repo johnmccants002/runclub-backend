@@ -255,6 +255,10 @@ router.get("/future", verifyToken, async (req, res) => {
     const formattedEvents = futureEvents.map((event) => {
       const startTimeZoned = toZonedTime(new Date(event.startTime), timeZone);
       const endTimeZoned = toZonedTime(new Date(event.endTime), timeZone);
+      console.log(startTimeZoned, "START TIME ZONED");
+      console.log(
+        formatInTimeZone(startTimeZoned, timeZone, "MMMM dd, yyyy 'at' h:mm a")
+      );
 
       return {
         ...event,

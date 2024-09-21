@@ -103,9 +103,12 @@ router.get("/:eventId", verifyToken, async (req, res) => {
 
   try {
     const rsvpsCollection = await db.collection("rsvps");
+    const eventIdObject = new ObjectId(eventId);
 
     // Fetch all RSVPs for the given event
-    const rsvps = await rsvpsCollection.find({ eventId }).toArray();
+    const rsvps = await rsvpsCollection
+      .find({ eventId: eventIdObject })
+      .toArray();
 
     if (rsvps.length === 0) {
       return res.status(404).json({ message: "No RSVPs found for this event" });

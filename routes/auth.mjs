@@ -206,7 +206,7 @@ router.post("/forgot-password", async (req, res) => {
       },
     });
 
-    const resetURL = `http://localhost:3000/reset-password/${resetToken}`;
+    const resetURL = `http://localhost:5050/auth/reset-password/${resetToken}`;
 
     const mailOptions = {
       from: process.env.EMAIL,
@@ -232,6 +232,7 @@ router.post("/forgot-password", async (req, res) => {
 });
 
 router.post("/reset-password/:token", async (req, res) => {
+  console.log("RESETTING THE PASSWORD");
   const { token } = req.params;
   const { password } = req.body;
 
@@ -322,6 +323,17 @@ router.post("/token", async (req, res) => {
     console.error(error);
     return res.status(403).json({ message: "Invalid refresh token" });
   }
+});
+
+router.get("/reset-password/:token", (req, res) => {
+  const { token } = req.params;
+
+  console.log("WE ARE HITTING THE ROUTE");
+
+  // Optionally, you can validate the token here or on the frontend
+  // You can pass the token to the frontend to be used when submitting the new password
+
+  res.render("reset-password", { token }); // Render the password reset page and pass the token to the template
 });
 
 router.post("/logout", async (req, res) => {

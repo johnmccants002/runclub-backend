@@ -19,6 +19,12 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.set("view engine", "ejs"); // If you're using EJS as a template engine
+// Middleware to parse URL-encoded data (for form submissions)
+app.use(express.urlencoded({ extended: true }));
+
+// Middleware to parse JSON bodies (if you're handling JSON too)
+app.use(express.json());
 
 // Load the /posts routes
 app.use("/auth", authRouter);
