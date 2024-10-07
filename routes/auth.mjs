@@ -30,6 +30,8 @@ router.post("/signup", async (req, res) => {
   try {
     const usersCollection = await db.collection("users");
 
+    const lowerCaseEmail = email.toLowerCase();
+
     // Check if user already exists
     const userExists = await usersCollection.findOne({ email });
     if (userExists) {
@@ -44,7 +46,7 @@ router.post("/signup", async (req, res) => {
       _id: new ObjectId(),
       firstName,
       lastName,
-      email,
+      lowerCaseEmail,
       password: hashedPassword,
       tosAccepted: !!tosAccepted, // Ensure it's a boolean
       emailList: !!emailList, // Ensure it's a boolean
@@ -108,9 +110,10 @@ router.post("/signin", async (req, res) => {
 
   try {
     const usersCollection = await db.collection("users");
+    const lowerCaseEmail = email.toLowerCase();
 
     // Check if the user exists
-    const user = await usersCollection.findOne({ email });
+    const user = await usersCollection.findOne({ email: lowerCaseEmail });
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
