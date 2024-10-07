@@ -209,7 +209,7 @@ router.post("/forgot-password", async (req, res) => {
       },
     });
 
-    const resetURL = `http://localhost:5050/auth/reset-password/${resetToken}`;
+    const resetURL = `https://fierce-anchorage-70861-0deb04f424af.herokuapp.com/auth/reset-password/${resetToken}`;
 
     const mailOptions = {
       from: process.env.EMAIL,
@@ -291,8 +291,11 @@ router.post("/token", async (req, res) => {
       _id: new ObjectId(decoded.userId),
     });
 
+    // Check if user exists and the refresh token matches
     if (!user || user.refreshToken !== refreshToken) {
-      return res.status(403).json({ message: "Invalid refresh token" });
+      return res
+        .status(403)
+        .json({ message: "Invalid or expired refresh token" });
     }
 
     // Generate a new access token
@@ -304,7 +307,7 @@ router.post("/token", async (req, res) => {
       }
     );
 
-    // (Optional) Generate a new refresh token and update the database
+    // Generate a new refresh token and update the database
     const newRefreshToken = jwt.sign(
       { userId: user._id, email: user.email },
       JWT_REFRESH_SECRET,
@@ -324,7 +327,15 @@ router.post("/token", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(403).json({ message: "Invalid refresh token" });
+
+    // Differentiate errors for more context
+    if (error.name === "TokenExpiredError") {
+      return res.status(403).json({ message: "Refresh token expired" });
+    } else if (error.name === "JsonWebTokenError") {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    } else {
+      return res.status(500).json({ message: "Internal server error" });
+    }
   }
 });
 
