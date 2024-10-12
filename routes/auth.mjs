@@ -46,7 +46,7 @@ router.post("/signup", async (req, res) => {
       _id: new ObjectId(),
       firstName,
       lastName,
-      lowerCaseEmail,
+      email: lowerCaseEmail,
       password: hashedPassword,
       tosAccepted: !!tosAccepted, // Ensure it's a boolean
       emailList: !!emailList, // Ensure it's a boolean
