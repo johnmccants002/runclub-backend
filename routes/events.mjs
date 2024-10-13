@@ -125,9 +125,23 @@ router.post("/create", verifyToken, async (req, res) => {
         html: emailHTML,
       };
 
-      transporter.sendMail(mailOptions, (error, info) => {
+      transporter.sendMail(mailOptions, async (error, info) => {
         if (error) {
           console.error("Error sending email to:", user.email, error);
+          // Check if the error indicates an invalid email
+          if (
+            error.responseCode === 550 ||
+            error.response.includes("no such user")
+          ) {
+            // Remove user from email list instead of deleting them
+            await usersCollection.updateOne(
+              { _id: user._id },
+              { $set: { emailList: false } }
+            );
+            console.log(
+              `User with email ${user.email} removed from email list.`
+            );
+          }
         } else {
           console.log("Email sent to:", user.email);
         }

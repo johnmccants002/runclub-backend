@@ -1,14 +1,19 @@
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
+import { ObjectId } from "mongodb";
 
 export async function getPushTokenByUserId(userId) {
   try {
     // Query the notifications collection to get the push token for the specific userId
     const tokenDoc = await db
       .collection("notifications")
-      .findOne({ userId: userId }, { projection: { pushToken: 1, _id: 0 } });
+      .findOne(
+        { userId: ObjectId(userId) },
+        { projection: { pushToken: 1, _id: 0 } }
+      );
 
     // Return the pushToken if found
     if (tokenDoc && tokenDoc.pushToken) {
+      console.log(JSON.stringify(tokenDoc));
       return tokenDoc.pushToken;
     } else {
       return null; // Return null if no push token is found

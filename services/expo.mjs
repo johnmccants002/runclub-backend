@@ -113,3 +113,46 @@ export const newMemberNotification = async (firstName, lastName, db) => {
     console.error(error);
   }
 };
+
+// Create a new Expo SDK client
+
+export async function sendPushNotification(pushToken, message, url) {
+  // Check that the push token appears to be a valid Expo push token
+  if (!Expo.isExpoPushToken(pushToken)) {
+    console.error(`Push token ${pushToken} is not a valid Expo push token`);
+    return;
+  }
+
+  // Construct the message
+  const messageObj = {
+    to: pushToken,
+    sound: "default",
+    body: message,
+    data: { url: url },
+  };
+
+  try {
+    // Send the notification
+    let ticket = await expo.sendPushNotificationsAsync([messageObj]);
+    console.log("Ticket received:", ticket);
+
+    // Get receipt IDs from the ticket
+    let receiptIds = [];
+    for (let receipt of ticket) {
+      if (receipt.status === "ok") {
+        receiptIds.push(receipt.id);
+      } else {
+        console.error(
+          `There was an error sending a notification: ${receipt.message}`
+        );
+        if (receipt.details && receipt.details.error) {
+          console.error(`The error code is ${receipt.details.error}`);
+        }
+      }
+    }
+
+    return receiptIds; // You can use these to fetch the receipts later
+  } catch (error) {
+    console.error("Error sending notification:", error);
+  }
+}
