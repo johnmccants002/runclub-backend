@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid"; // Optionally generate unique IDs for file 
 import { sendPushNotifications } from "../services/expo.mjs";
 import { getAllPushTokens } from "../helpers/pushNotifications.mjs";
 import nodemailer from "nodemailer";
+import { generateEventEmailTemplate } from "../helpers/emailTemplates.mjs";
 
 // Time zone for California (Pacific Time)
 const timeZone = "America/Los_Angeles";
@@ -99,6 +100,14 @@ router.post("/create", verifyToken, async (req, res) => {
     916 Run Club
   `;
 
+    const emailHTML = generateEventEmailTemplate(
+      title,
+      details,
+      startTime,
+      endTime,
+      location
+    );
+
     // Send an email to each user in the email list
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -113,7 +122,7 @@ router.post("/create", verifyToken, async (req, res) => {
         from: process.env.EMAIL,
         to: user.email,
         subject: emailSubject,
-        text: emailBody,
+        html: emailHTML,
       };
 
       transporter.sendMail(mailOptions, (error, info) => {
