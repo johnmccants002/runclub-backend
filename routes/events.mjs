@@ -9,6 +9,8 @@ import multer from "multer";
 import { v4 as uuidv4 } from "uuid"; // Optionally generate unique IDs for file names
 import { sendPushNotifications } from "../services/expo.mjs";
 import { getAllPushTokens } from "../helpers/pushNotifications.mjs";
+import nodemailer from "nodemailer";
+
 // Time zone for California (Pacific Time)
 const timeZone = "America/Los_Angeles";
 
@@ -73,6 +75,55 @@ router.post("/create", verifyToken, async (req, res) => {
 
     // Insert the new event into the collection
     await eventsCollection.insertOne(newEvent);
+
+    const emailListUsers = await usersCollection
+      .find({ emailList: true })
+      .toArray();
+
+    // Email content
+    const emailSubject = `New Event: ${title}`;
+    const emailBody = `
+    Hello,
+
+    A new event has been created! Here are the details:
+
+    Event: ${title}
+    Details: ${details}
+    Start Time: ${new Date(startTime).toLocaleString()}
+    End Time: ${new Date(endTime).toLocaleString()}
+    Location: ${location.name}, ${location.formatted_address}
+
+    We hope to see you there!
+
+    Best regards,
+    916 Run Club
+  `;
+
+    // Send an email to each user in the email list
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL, // Your email
+        pass: process.env.EMAIL_PASSWORD, // Your email password
+      },
+    });
+
+    emailListUsers.forEach((user) => {
+      const mailOptions = {
+        from: process.env.EMAIL,
+        to: user.email,
+        subject: emailSubject,
+        text: emailBody,
+      };
+
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error("Error sending email to:", user.email, error);
+        } else {
+          console.log("Email sent to:", user.email);
+        }
+      });
+    });
 
     const tokens = await getAllPushTokens();
 
