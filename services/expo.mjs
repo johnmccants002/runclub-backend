@@ -8,7 +8,7 @@ let expo = new Expo({
 });
 
 // This function will send push notifications to a list of tokens
-export async function sendPushNotifications(pushTokens, message) {
+export async function sendPushNotifications(pushTokens, message, url) {
   let messages = [];
 
   // Create the messages that you want to send to clients
@@ -24,7 +24,7 @@ export async function sendPushNotifications(pushTokens, message) {
       to: pushToken,
       sound: "default",
       body: message,
-      data: { url: "/admin/about/pending-members" },
+      data: { url: url },
     });
   }
 
@@ -104,7 +104,8 @@ export const newMemberNotification = async (firstName, lastName, db) => {
     );
     sendPushNotifications(
       adminPushTokens,
-      `${firstName} ${lastName} requested to join 916 Run Club!`
+      `${firstName} ${lastName} requested to join 916 Run Club!`,
+      "/admin/about/pending-members"
     );
     // Send the result
     return;

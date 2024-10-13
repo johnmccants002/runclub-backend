@@ -2,6 +2,8 @@ import express from "express";
 import { ObjectId } from "mongodb";
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
 import { verifyToken } from "../middleware/verifyToken.mjs";
+import { getPushTokenByUserId } from "../helpers/pushNotifications.mjs";
+import { sendPushNotifications } from "../services/expo.mjs";
 
 const router = express.Router();
 
@@ -48,6 +50,16 @@ router.put("/accept/:userId", verifyToken, async (req, res) => {
 
     if (result.matchedCount === 0) {
       return res.status(404).json({ message: "User not found" });
+    }
+
+    const token = await getPushTokenByUserId(userId);
+
+    if (token) {
+      await sendPushNotifications(
+        token,
+        "You've been accepted into 916 Run Club App!",
+        "/"
+      );
     }
 
     return res

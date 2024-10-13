@@ -8,31 +8,12 @@ import app from "../services/firebase-admin.mjs";
 import multer from "multer";
 import { v4 as uuidv4 } from "uuid"; // Optionally generate unique IDs for file names
 import { sendPushNotifications } from "../services/expo.mjs";
-
+import { getAllPushTokens } from "../helpers/pushNotifications.mjs";
 // Time zone for California (Pacific Time)
 const timeZone = "America/Los_Angeles";
 
 const router = express.Router();
 
-export async function getAllPushTokens() {
-  try {
-    // Query the notifications collection to get all push tokens
-    const tokens = await db
-      .collection("notifications")
-      .find({}, { projection: { pushToken: 1, _id: 0 } }) // Retrieve only the pushToken field
-      .toArray();
-
-    // Map the results to extract just the pushToken values
-    const pushTokens = tokens.map((tokenDoc) => tokenDoc.pushToken);
-
-    return pushTokens;
-  } catch (error) {
-    console.error("Error fetching all push tokens:", error);
-    throw new Error("Failed to fetch push tokens");
-  }
-}
-
-import Event from "../models/event.mjs"; // Import the Event model
 router.post("/create", verifyToken, async (req, res) => {
   const { adminId, title, details, startTime, endTime, photo, location } =
     req.body; // Include location in destructuring
