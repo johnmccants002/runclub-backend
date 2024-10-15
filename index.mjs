@@ -29,7 +29,7 @@ app.use(express.json());
 // Load the /posts routes
 app.use("/auth", authRouter);
 app.use("/announcements", announcementsRouter);
-app.use("/users", profileRouter);
+// app.use("/users", profileRouter);
 app.use("/users", usersRouter);
 app.use("/admin", adminRouter);
 app.use("/members", membersRouter);

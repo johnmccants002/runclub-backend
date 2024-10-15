@@ -236,30 +236,6 @@ router.get("/events", verifyToken, async (req, res) => {
 });
 
 // Route to get a single event by ID
-router.get("/events/:eventId", verifyToken, async (req, res) => {
-  const { eventId } = req.params;
-
-  if (!ObjectId.isValid(eventId)) {
-    return res.status(400).json({ message: "Invalid event ID" });
-  }
-
-  try {
-    const eventsCollection = await db.collection("events");
-
-    const event = await eventsCollection.findOne({
-      _id: new ObjectId(eventId),
-    });
-
-    if (!event) {
-      return res.status(404).json({ message: "Event not found" });
-    }
-
-    return res.status(200).json(event);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
 
 router.get("/today", verifyToken, async (req, res) => {
   try {
@@ -411,6 +387,44 @@ router.post("/upload", upload.single("image"), async (req, res) => {
   } catch (err) {
     console.error("Something went wrong:", err);
     res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+router.get("/:eventId", verifyToken, async (req, res) => {
+  console.log("IN THE FUNCTION");
+  console.log(JSON.stringify(req.params));
+  const { eventId } = req.params;
+
+  console.log("THIS IS THE EVENT ID", eventId);
+
+  // if (!ObjectId.isValid(eventId)) {
+  //   console.log("ID IS NOT VALID");
+
+  //   return res.status(400).json({ message: "Invalid event ID" });
+  // } else {
+  //   console.log("ITS VALID");
+  // }
+
+  console.log("AFTER THE IF");
+
+  try {
+    console.log("IN THE TRY");
+    const eventsCollection = await db.collection("events");
+    console.log("BEFORE");
+    const event = await eventsCollection.findOne({
+      _id: new ObjectId(eventId),
+    });
+    console.log("FJKFLWEJFELKFJFWLKFFJWELK");
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+    console.log("THIS IS THE EVENT DETAILS: ", event);
+
+    return res.status(200).json(event);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 

@@ -146,4 +146,72 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
+// GET: Fetch RSVPs for a specific user (protected route)
+router.get("/user/:userId", verifyToken, async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ message: "User ID is required" });
+  }
+
+  try {
+    const rsvpsCollection = await db.collection("rsvps");
+    const userIdObject = new ObjectId(userId); // Assuming userId is an ObjectId
+
+    // Fetch all RSVPs for the given user
+    const rsvps = await rsvpsCollection
+      .find({ userId: userIdObject })
+      .toArray();
+
+    if (rsvps.length === 0) {
+      return res.status(404).json({ message: "No RSVPs found for this user" });
+    }
+
+    return res.status(200).json({
+      message: "RSVPs fetched successfully",
+      rsvps,
+    });
+  } catch (error) {
+    console.error("Error fetching user RSVPs:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET: Check if a user has RSVP'd to a specific event (protected route)
+router.get("/:eventId/user/:userId", verifyToken, async (req, res) => {
+  const { eventId, userId } = req.params;
+
+  if (!eventId || !userId) {
+    return res
+      .status(400)
+      .json({ message: "Event ID and User ID are required" });
+  }
+
+  try {
+    const rsvpsCollection = await db.collection("rsvps");
+    const eventIdObject = new ObjectId(eventId);
+    const userIdObject = new ObjectId(userId); // Assuming userId is an ObjectId
+
+    // Check if the user has RSVP'd for the given event
+    const rsvp = await rsvpsCollection.findOne({
+      eventId: eventIdObject,
+      userId: userIdObject,
+    });
+
+    if (!rsvp) {
+      return res
+        .status(404)
+        .json({ message: "User has not RSVP'd to this event" });
+    }
+
+    return res.status(200).json({
+      message: "User has RSVP'd to this event",
+      rsvp,
+    });
+  } catch (error) {
+    console.error("Error checking RSVP:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

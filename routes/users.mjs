@@ -29,6 +29,8 @@ router.get("/:id", verifyToken, async (req, res) => {
     return res.status(400).json({ message: "Invalid user ID" });
   }
 
+  console.log("IS VALID");
+
   try {
     const usersCollection = await db.collection("users");
 
@@ -36,6 +38,7 @@ router.get("/:id", verifyToken, async (req, res) => {
       { _id: new ObjectId(id) },
       { projection: { password: 0 } } // Exclude the password field from the response
     );
+    console.log("THIS IS THE USER", user);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
