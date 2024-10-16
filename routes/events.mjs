@@ -1,16 +1,15 @@
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import express from "express";
 import { ObjectId } from "mongodb";
-import db from "../db/conn.mjs"; // Adjust path as per your project structure
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
-import { verifyToken } from "../middleware/verifyToken.mjs";
-import { getStorage, ref, uploadBytesResumable } from "firebase/storage";
-import app from "../services/firebase-admin.mjs";
 import multer from "multer";
-import { v4 as uuidv4 } from "uuid"; // Optionally generate unique IDs for file names
-import { sendPushNotifications } from "../services/expo.mjs";
-import { getAllPushTokens } from "../helpers/pushNotifications.mjs";
 import nodemailer from "nodemailer";
+import { v4 as uuidv4 } from "uuid"; // Optionally generate unique IDs for file names
+import db from "../db/conn.mjs"; // Adjust path as per your project structure
 import { generateEventEmailTemplate } from "../helpers/emailTemplates.mjs";
+import { getAllPushTokens } from "../helpers/pushNotifications.mjs";
+import { verifyToken } from "../middleware/verifyToken.mjs";
+import { sendPushNotifications } from "../services/expo.mjs";
+import app from "../services/firebase-admin.mjs";
 
 // Time zone for California (Pacific Time)
 const timeZone = "America/Los_Angeles";
@@ -424,6 +423,45 @@ router.get("/:eventId", verifyToken, async (req, res) => {
     return res.status(200).json(event);
   } catch (error) {
     console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/report", verifyToken, async (req, res) => {
+  try {
+    const { eventId, userId } = req.body;
+
+    // Validate that the event ID is provided
+    if (!eventId) {
+      return res.status(400).json({ message: "Event ID is required" });
+    }
+
+    const eventsCollection = await db.collection("events");
+    const event = await eventsCollection.findOne({
+      _id: new ObjectId(eventId),
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    const reportsCollection = await db.collection("reports");
+
+    const newReport = {
+      eventId: new ObjectId(eventId),
+      reportedBy: new ObjectId(userId), // User ID from the verified token
+      createdAt: new Date(),
+    };
+
+    // Insert the report into the reports collection
+    const result = await reportsCollection.insertOne(newReport);
+
+    return res.status(200).json({
+      message: "Event reported successfully",
+      reportId: result.insertedId,
+    });
+  } catch (error) {
+    console.error("Error reporting event:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
