@@ -159,6 +159,44 @@ router.post("/create", verifyToken, async (req, res) => {
   }
 });
 
+router.get("/gallery", async (req, res) => {
+  try {
+    const dbStorage = app.storage();
+    const bucket = dbStorage.bucket();
+
+    // Get the files from the 'gallery' folder with a max limit of 20 files
+    const [files] = await bucket.getFiles({
+      prefix: "gallery/", // Specify the folder
+      maxResults: 20, // Number of images to fetch
+    });
+
+    // Filter out non-image files and get the public URLs of image files
+    const imageUrls = await Promise.all(
+      files.map(async (file) => {
+        // Get file metadata
+        const [metadata] = await file.getMetadata();
+        const contentType = metadata.contentType;
+
+        // Check if the file is an image
+        if (contentType && contentType.startsWith("image/")) {
+          await file.makePublic(); // Ensure the file is public
+          return `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+        }
+
+        return null; // Skip non-image files
+      })
+    );
+
+    // Filter out any null values (non-image URLs)
+    const validImageUrls = imageUrls.filter((url) => url !== null);
+
+    res.status(200).json({ imageUrls: validImageUrls });
+  } catch (error) {
+    console.error("Error fetching gallery images:", error);
+    res.status(500).json({ error: "Failed to fetch images" });
+  }
+});
+
 // Route to update an event by ID
 router.put("/update-event/:eventId", verifyToken, async (req, res) => {
   const { eventId } = req.params;
