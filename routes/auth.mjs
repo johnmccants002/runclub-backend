@@ -283,6 +283,7 @@ router.post("/token", async (req, res) => {
   }
 
   try {
+    // Verify the refresh token
     const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
 
     // Find the user with the refresh token
@@ -298,9 +299,9 @@ router.post("/token", async (req, res) => {
         .json({ message: "Invalid or expired refresh token" });
     }
 
-    // Generate a new access token
+    // Generate a new access token with all the required user info
     const newToken = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, isAdmin: user.isAdmin }, // Include isAdmin here
       JWT_SECRET,
       {
         expiresIn: "1h",
@@ -309,26 +310,33 @@ router.post("/token", async (req, res) => {
 
     // Generate a new refresh token and update the database
     const newRefreshToken = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, isAdmin: user.isAdmin }, // Include isAdmin here
       JWT_REFRESH_SECRET,
       {
         expiresIn: "7d",
       }
     );
 
+    // Update the user's refresh token in the database
     await usersCollection.updateOne(
       { _id: user._id },
       { $set: { refreshToken: newRefreshToken } }
     );
 
     return res.status(200).json({
-      token: newToken,
-      refreshToken: newRefreshToken,
+      token: newToken, // Return the new access token
+      refreshToken: newRefreshToken, // Return the new refresh token
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        isAdmin: user.isAdmin, // Return user info if needed
+      },
     });
   } catch (error) {
     console.error(error);
 
-    // Differentiate errors for more context
     if (error.name === "TokenExpiredError") {
       return res.status(403).json({ message: "Refresh token expired" });
     } else if (error.name === "JsonWebTokenError") {
