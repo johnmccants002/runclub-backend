@@ -4,7 +4,6 @@ import "./loadEnvironment.mjs";
 import "express-async-errors";
 import authRouter from "./routes/auth.mjs";
 import announcementsRouter from "./routes/announcements.mjs";
-import profileRouter from "./routes/profile.mjs";
 import usersRouter from "./routes/users.mjs";
 import adminRouter from "./routes/admin.mjs";
 import membersRouter from "./routes/members.mjs";
@@ -13,9 +12,18 @@ import locationsRouter from "./routes/locations.mjs";
 import rsvpsRouter from "./routes/rsvps.mjs";
 import pingRouter from "./routes/ping.mjs";
 import notificationsRouter from "./routes/notifications.mjs";
+import { createServer } from "http"; // Import http to create server
+import { Server } from "socket.io"; // Import socket.io
 
 const PORT = process.env.PORT || 5050;
 const app = express();
+const server = createServer(app);
+// Create a new instance of Socket.io, passing the HTTP server
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all origins for now; adjust for security in production
+  },
+});
 
 app.use(cors());
 app.use(express.json());
@@ -39,12 +47,24 @@ app.use("/rsvps", rsvpsRouter);
 app.use("/ping", pingRouter);
 app.use("/notifications", notificationsRouter);
 
+// Socket.io event handling
+io.on("connection", (socket) => {
+  console.log("A user connected");
+
+  // You can set up custom events if needed
+  socket.on("disconnect", () => {
+    console.log("A user disconnected");
+  });
+});
+
 // Global error handling
 app.use((err, _req, res, next) => {
   res.status(500).send("Uh oh! An unexpected error occured.");
 });
 
-// start the Express server
-app.listen(PORT, () => {
+// Refactor to listen on the HTTP server, not the app directly
+server.listen(PORT, () => {
   console.log(`Server is running on port: ${PORT}`);
 });
+
+export { io }; // Export io to use it in other files like the check-in route

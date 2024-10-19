@@ -8,7 +8,6 @@ import db from "../db/conn.mjs"; // Adjust path as per your project structure
 import { generateEventEmailTemplate } from "../helpers/emailTemplates.mjs";
 import { getAllPushTokens } from "../helpers/pushNotifications.mjs";
 import { verifyToken } from "../middleware/verifyToken.mjs";
-import { sendPushNotifications } from "../services/expo.mjs";
 import app from "../services/firebase-admin.mjs";
 
 // Time zone for California (Pacific Time)
@@ -53,6 +52,26 @@ router.post("/create", verifyToken, async (req, res) => {
       return res.status(400).json({ message: "User not found" });
     }
 
+    // Create the Firebase Storage folder for the event
+    console.log("HERE LINE 81");
+    const formattedDate = new Date(startTime).toISOString().split("T")[0]; // Format the date (YYYY-MM-DD)
+    const formattedTitle = title.replace(/\s+/g, "-").toLowerCase(); // Format title (e.g., 'Sunday Run' -> 'sunday-run')
+    console.log(formattedTitle, formattedDate);
+    const storage = app.storage();
+    const bucket = storage.bucket();
+
+    // Define the folder name based on the event date, title, and ID
+    console.log("Got storage yo");
+    const folderPath = `gallery/${formattedDate}-${formattedTitle}`;
+    console.log("THIS IS THE FOLDER PATH", folderPath);
+
+    // Create a reference to the folder in Firebase Storage
+    const folderRef = bucket.file(`${folderPath}/`);
+    console.log("THIS IS THE FOLDER REF", folderRef);
+
+    // Optional: Add a blank placeholder file to ensure the folder is created
+    await folderRef.save("");
+
     // Prepare the new event data with location details
     const newEvent = {
       createdBy: new ObjectId(adminId), // Set user ID as the event creator
@@ -69,12 +88,16 @@ router.post("/create", verifyToken, async (req, res) => {
         lng: location.lng,
       },
       createdAt: new Date(),
+      galleryUrl: folderRef.metadata.name,
     };
 
     const eventsCollection = await db.collection("events");
 
     // Insert the new event into the collection
-    await eventsCollection.insertOne(newEvent);
+    const result = await eventsCollection.insertOne(newEvent);
+    const eventId = result.insertedId;
+
+    console.log(`Folder created in Firebase Storage: ${folderPath}`);
 
     const emailListUsers = await usersCollection
       .find({ emailList: true })
@@ -156,6 +179,45 @@ router.post("/create", verifyToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+});
+router.get("/gallery-folders", async (req, res) => {
+  try {
+    // Use Firebase Admin SDK to interact with Firebase Storage
+    const storage = app.storage();
+    const bucket = storage.bucket();
+    const [files] = await bucket.getFiles({
+      prefix: "gallery/", // Get files inside the 'gallery/' folder
+      delimiter: "/",
+    });
+    console.log(files.length, "LENGTH");
+    const objects = [];
+    files.forEach((file) => {
+      objects.push({ file: file.name, type: file.type, prefix: file.prefix });
+    });
+    res.status(200).json({ files: objects });
+
+    // Extract folder paths (prefixes)
+    const folders = files.prefixes.map((prefix) => {
+      const folderName = prefix.replace("gallery/", "").replace("/", ""); // Clean up the path
+
+      // Split the folder name into date, title, and id
+      const [date, ...rest] = folderName.split("-");
+      const title = rest.slice(0, -1).join("-"); // Everything before the last part is the title
+      const id = rest[rest.length - 1]; // The last part is the ID
+
+      return {
+        folderUrl: `https://storage.googleapis.com/${bucket.name}/${prefix}`,
+        date,
+        title,
+        id,
+      };
+    });
+
+    res.status(200).json({ folders });
+  } catch (error) {
+    console.error("Error fetching gallery folders:", error);
+    res.status(500).json({ error: "Failed to fetch folders" });
   }
 });
 
@@ -259,13 +321,92 @@ router.delete("/delete-event/:eventId", verifyToken, async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
+router.get("/list/:id/images", verifyToken, async (req, res) => {
+  const { id } = req.params; // Get the event ID from the URL
 
-// Route to get all events
-router.get("/events", verifyToken, async (req, res) => {
+  if (!id) {
+    return res.status(400).json({ message: "Event ID is required." });
+  }
+
   try {
     const eventsCollection = await db.collection("events");
-    const events = await eventsCollection.find({}).toArray();
-    return res.status(200).json(events);
+
+    // Fetch the event by ID to ensure it exists
+    const event = await eventsCollection.findOne({ _id: new ObjectId(id) });
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found." });
+    }
+
+    // Ensure the event has a valid galleryUrl
+    if (!event.galleryUrl) {
+      return res
+        .status(400)
+        .json({ message: "No gallery URL found for this event." });
+    }
+
+    // Extract the Firebase Storage folder path from the galleryUrl
+    const galleryPath = event.galleryUrl.replace(
+      "https://storage.googleapis.com/runclub-b067c.appspot.com/",
+      ""
+    );
+
+    // Fetch images from Firebase Storage
+    const storage = app.storage();
+    const bucket = storage.bucket("runclub-b067c.appspot.com");
+
+    const [files] = await bucket.getFiles({
+      prefix: galleryPath, // Pass the relative path
+      delimiter: "/", // Ensure only files in this folder are fetched
+    });
+
+    // Map the file objects to their public URLs, excluding any placeholder files
+    const imageUrls = await Promise.all(
+      files.map(async (file) => {
+        // Optionally, filter out placeholder files by checking their name
+        if (file.name.endsWith("placeholder.txt")) {
+          return null; // Exclude placeholder files
+        }
+        // Check if the file is an image
+        if (file.metadata.contentType) {
+          // Make the file public and return its URL
+          console.log(file.metadata.contentType);
+          await file.makePublic();
+          return `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+        }
+
+        return null;
+
+        // // Make the file public
+        // await file.makePublic();
+
+        // // Return the public URL of the file
+        // return `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+      })
+    );
+
+    // Filter out any null values (i.e., placeholder files)
+    const validImageUrls = imageUrls.filter((url) => url !== null);
+    console.log(validImageUrls, "THESE ARE THE VALID URLS");
+
+    res.status(200).json({ images: validImageUrls });
+  } catch (error) {
+    console.error("Error fetching event images:", error);
+    return res.status(500).json({ message: "Failed to fetch event images." });
+  }
+});
+
+// Route to get all events that have a galleryUrl
+router.get("/list", verifyToken, async (req, res) => {
+  try {
+    const eventsCollection = await db.collection("events");
+
+    // Find events where galleryUrl exists and is not null or empty
+    const eventsWithGallery = await eventsCollection
+      .find({ galleryUrl: { $exists: true, $ne: "" } })
+      .toArray();
+
+    return res.status(200).json(eventsWithGallery);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });

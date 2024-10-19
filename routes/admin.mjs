@@ -7,6 +7,7 @@ import {
   sendPushNotifications,
   sendPushNotification,
 } from "../services/expo.mjs";
+import { io } from "../index.mjs";
 
 const router = express.Router();
 
@@ -201,6 +202,8 @@ router.post("/checkin", verifyToken, async (req, res) => {
 
     // Insert the check-in record into the collection
     await checkInsCollection.insertOne(checkInData);
+    // Emit the check-in event to trigger the animation on the user's device
+    io.emit("userCheckedIn", { userId, eventId });
 
     return res
       .status(201)
