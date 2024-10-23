@@ -464,23 +464,95 @@ router.get("/future", verifyToken, async (req, res) => {
     const formattedEvents = futureEvents.map((event) => {
       const startTimeZoned = toZonedTime(new Date(event.startTime), timeZone);
       const endTimeZoned = toZonedTime(new Date(event.endTime), timeZone);
-      console.log(startTimeZoned, "START TIME ZONED");
-      console.log(
-        formatInTimeZone(startTimeZoned, timeZone, "MMMM dd, yyyy 'at' h:mm a")
+
+      // Format the date as "Friday, October 25 · 8:30pm"
+      const formattedStartTime = formatInTimeZone(
+        startTimeZoned,
+        timeZone,
+        "EEEE, MMMM d · h:mma"
       );
+      const formattedEndTime = formatInTimeZone(
+        endTimeZoned,
+        timeZone,
+        "EEEE, MMMM d · h:mma"
+      );
+      // Format startDate and endDate as YYYY-MM-DD
+      const startDate = formatInTimeZone(
+        startTimeZoned,
+        timeZone,
+        "yyyy-MM-dd"
+      );
+      const endDate = formatInTimeZone(endTimeZoned, timeZone, "yyyy-MM-dd");
 
       return {
         ...event,
-        startTime: formatInTimeZone(
-          startTimeZoned,
-          timeZone,
-          "MMMM dd, yyyy 'at' h:mm a"
-        ), // Format date for Pacific Time
-        endTime: formatInTimeZone(
-          endTimeZoned,
-          timeZone,
-          "MMMM dd, yyyy 'at' h:mm a"
-        ), // Format end time
+        startTime: formattedStartTime, // Format start time
+        endTime: formattedEndTime, // Format end time
+        startDate: startDate,
+        endDate: endDate,
+      };
+    });
+
+    console.log(JSON.stringify(formattedEvents[0].startTime));
+
+    return res.status(200).json({
+      message: "Future events found",
+      events: formattedEvents,
+    });
+  } catch (error) {
+    console.error("Error fetching future events:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/basic", async (req, res) => {
+  console.log("GRABBING THE EVENTS");
+  try {
+    const now = new Date(); // Current date and time
+
+    const eventsCollection = await db.collection("events");
+
+    // Find all events that start in the future
+    const futureEvents = await eventsCollection
+      .find({
+        startTime: { $gt: now },
+      })
+      .toArray(); // Use toArray() to get all future events in an array
+
+    if (futureEvents.length === 0) {
+      return res.status(404).json({ message: "No future events found" });
+    }
+
+    // Convert startTime and endTime to proper Date objects and format them to Pacific Time
+    const formattedEvents = futureEvents.map((event) => {
+      const startTimeZoned = toZonedTime(new Date(event.startTime), timeZone);
+      const endTimeZoned = toZonedTime(new Date(event.endTime), timeZone);
+
+      // Format the date as "Friday, October 25 · 8:30pm"
+      const formattedStartTime = formatInTimeZone(
+        startTimeZoned,
+        timeZone,
+        "EEEE, MMMM d · h:mma"
+      );
+      const formattedEndTime = formatInTimeZone(
+        endTimeZoned,
+        timeZone,
+        "EEEE, MMMM d · h:mma"
+      );
+      // Format startDate and endDate as YYYY-MM-DD
+      const startDate = formatInTimeZone(
+        startTimeZoned,
+        timeZone,
+        "yyyy-MM-dd"
+      );
+      const endDate = formatInTimeZone(endTimeZoned, timeZone, "yyyy-MM-dd");
+
+      return {
+        ...event,
+        startTime: formattedStartTime, // Format start time
+        endTime: formattedEndTime, // Format end time
+        startDate: startDate,
+        endDate: endDate,
       };
     });
 
@@ -575,14 +647,6 @@ router.get("/:eventId", verifyToken, async (req, res) => {
 
   console.log("THIS IS THE EVENT ID", eventId);
 
-  // if (!ObjectId.isValid(eventId)) {
-  //   console.log("ID IS NOT VALID");
-
-  //   return res.status(400).json({ message: "Invalid event ID" });
-  // } else {
-  //   console.log("ITS VALID");
-  // }
-
   console.log("AFTER THE IF");
 
   try {
@@ -597,9 +661,38 @@ router.get("/:eventId", verifyToken, async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
+
+    // Convert startTime and endTime to proper Date objects and format them to Pacific Time
+
+    const startTimeZoned = toZonedTime(new Date(event.startTime), timeZone);
+    const endTimeZoned = toZonedTime(new Date(event.endTime), timeZone);
+    // Format startDate and endDate as YYYY-MM-DD
+    const startDate = formatInTimeZone(startTimeZoned, timeZone, "yyyy-MM-dd");
+    const endDate = formatInTimeZone(endTimeZoned, timeZone, "yyyy-MM-dd");
+
+    // Format the date as "Friday, October 25 · 8:30pm"
+    const formattedStartTime = formatInTimeZone(
+      startTimeZoned,
+      timeZone,
+      "EEEE, MMMM d · h:mma"
+    );
+    const formattedEndTime = formatInTimeZone(
+      endTimeZoned,
+      timeZone,
+      "EEEE, MMMM d · h:mma"
+    );
+
+    const newEvent = {
+      ...event,
+      startTime: formattedStartTime, // Format start time
+      endTime: formattedEndTime, // Format end time
+      startDate: startTimeZoned,
+      endDate: endTimeZoned,
+    };
+
     console.log("THIS IS THE EVENT DETAILS: ", event);
 
-    return res.status(200).json(event);
+    return res.status(200).json(newEvent);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
