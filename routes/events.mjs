@@ -89,6 +89,7 @@ router.post("/create", verifyToken, async (req, res) => {
       },
       createdAt: new Date(),
       galleryUrl: folderRef.metadata.name,
+      photosUploaded: false,
     };
 
     const eventsCollection = await db.collection("events");
@@ -501,6 +502,63 @@ router.get("/future", verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching future events:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/all", verifyToken, async (req, res) => {
+  console.log("GRABBING ALL EVENTS");
+  try {
+    const eventsCollection = await db.collection("events");
+
+    // Fetch all events sorted by startTime (newest to oldest)
+    const allEvents = await eventsCollection
+      .find({})
+      .sort({ startTime: -1 })
+      .toArray();
+
+    if (allEvents.length === 0) {
+      return res.status(404).json({ message: "No events found" });
+    }
+
+    // Format the events as you did in the /future route
+    const timeZone = "America/Los_Angeles"; // Set your timezone
+    const formattedEvents = allEvents.map((event) => {
+      const startTimeZoned = toZonedTime(new Date(event.startTime), timeZone);
+      const endTimeZoned = toZonedTime(new Date(event.endTime), timeZone);
+
+      const formattedStartTime = formatInTimeZone(
+        startTimeZoned,
+        timeZone,
+        "EEEE, MMMM d · h:mma"
+      );
+      const formattedEndTime = formatInTimeZone(
+        endTimeZoned,
+        timeZone,
+        "EEEE, MMMM d · h:mma"
+      );
+      const startDate = formatInTimeZone(
+        startTimeZoned,
+        timeZone,
+        "yyyy-MM-dd"
+      );
+      const endDate = formatInTimeZone(endTimeZoned, timeZone, "yyyy-MM-dd");
+
+      return {
+        ...event,
+        startTime: formattedStartTime,
+        endTime: formattedEndTime,
+        startDate: startDate,
+        endDate: endDate,
+      };
+    });
+
+    return res.status(200).json({
+      message: "All events found",
+      events: formattedEvents,
+    });
+  } catch (error) {
+    console.error("Error fetching all events:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });

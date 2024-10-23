@@ -2,7 +2,10 @@ import express from "express";
 import { ObjectId } from "mongodb";
 import db from "../db/conn.mjs"; // Adjust path as per your project structure
 import { verifyToken } from "../middleware/verifyToken.mjs";
-import { getPushTokenByUserId } from "../helpers/pushNotifications.mjs";
+import {
+  getPushTokenByUserId,
+  getAllPushTokens,
+} from "../helpers/pushNotifications.mjs";
 import {
   sendPushNotifications,
   sendPushNotification,
@@ -210,6 +213,45 @@ router.post("/checkin", verifyToken, async (req, res) => {
       .json({ message: "User checked in successfully", checkInData });
   } catch (error) {
     console.error("Error during check-in:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/uploaded/:eventId", async (req, res) => {
+  const { eventId } = req.params;
+
+  try {
+    // Validate if the eventId is a valid ObjectId
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+
+    const eventsCollection = await db.collection("events");
+
+    // Check if the event exists
+    const event = await eventsCollection.findOne({
+      _id: new ObjectId(eventId),
+    });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Update the event by setting photosUploaded to true
+    await eventsCollection.updateOne(
+      { _id: new ObjectId(eventId) },
+      { $set: { photosUploaded: true } }
+    );
+
+    const tokens = await getAllPushTokens();
+
+    console.log("THESE ARE THE TOKENS", tokens);
+    await sendPushNotifications(tokens, "New Photos Uploaded!");
+
+    return res
+      .status(200)
+      .json({ message: "Photos uploaded status updated to true" });
+  } catch (error) {
+    console.error("Error updating photosUploaded status:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
