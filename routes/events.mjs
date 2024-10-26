@@ -16,10 +16,9 @@ const timeZone = "America/Los_Angeles";
 const router = express.Router();
 
 router.post("/create", verifyToken, async (req, res) => {
+  console.log("WE ARE HITTING THE ROUTE!");
   const { adminId, title, details, startTime, endTime, photo, location } =
     req.body; // Include location in destructuring
-
-  console.log(JSON.stringify({ adminId, title, details }));
 
   // Validate required fields
   if (!adminId || !title || !details || !startTime || !endTime || !location) {
@@ -48,6 +47,7 @@ router.post("/create", verifyToken, async (req, res) => {
 
     // Check if the user exists
     const user = await usersCollection.findOne({ _id: new ObjectId(adminId) });
+    console.log("we have a user");
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
@@ -404,7 +404,7 @@ router.get("/list", verifyToken, async (req, res) => {
 
     // Find events where galleryUrl exists and is not null or empty
     const eventsWithGallery = await eventsCollection
-      .find({ galleryUrl: { $exists: true, $ne: "" } })
+      .find({ galleryUrl: { $exists: true, $ne: "" }, photosUploaded: true })
       .toArray();
 
     return res.status(200).json(eventsWithGallery);
